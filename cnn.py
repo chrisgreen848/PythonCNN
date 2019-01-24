@@ -1,141 +1,134 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Jan 24 15:39:30 2019
 
+@author: Christopher Green
+"""
+
+#LOADING OWN DATA TO NETWORKS
+
+import sys
 import numpy as np
+import matplotlib.pyplot as plt
+import os
+import cv2
 import tensorflow as tf
 
-tf.logging.set_verbosity(tf.logging.INFO)
+DATADIR = "D:\Images"
+CATEGORIES = ["Drones", "Birds", "Sky"]
+TEST= ["Other"]
+for category in CATEGORIES:
+    path = os.path.join(DATADIR, category)
+    for img in os.listdir(path):
+        img_array = cv2.imread(os.path.join(path,img), cv2.IMREAD_GRAYSCALE)  
+        plt.imshow(img_array, cmap = "gray")
+        plt.show()
+        break
+    break
+print("There are ", len(CATEGORIES), "Categories")       
+print(img_array.shape)        
+
+IMG_SIZE = 50
+new_array = cv2.resize(img_array, (IMG_SIZE, IMG_SIZE))
+plt.imshow(new_array, cmap = 'gray')
+plt.show
+
+training_data = []
+test_data = []
+def create_training_data():
+    for category in CATEGORIES:
+        path = os.path.join(DATADIR, category)
+        class_num = CATEGORIES.index(category)
+        for img in os.listdir(path):
+            try:
+                img_array = cv2.imread(os.path.join(path,img), cv2.IMREAD_GRAYSCALE)  
+                new_array = cv2.resize(img_array, (IMG_SIZE, IMG_SIZE))
+                training_data.append([new_array, class_num])
+            except Exception as e:
+                pass
+def create_test_data():
+    for tests in TEST:
+        path = os.path.join(DATADIR, tests)
+        class_num = TEST.index(tests)
+        for img in os.listdir(path):
+            try:
+                img_array = cv2.imread(os.path.join(path,img), cv2.IMREAD_GRAYSCALE)  
+                new_array = cv2.resize(img_array, (IMG_SIZE, IMG_SIZE))
+                test_data.append([new_array, class_num])
+            except Exception as e:
+                pass
+print("Creating training data")
+create_training_data()
+print("Training Data Successful. Training Data length is:",len(training_data))
+print("Creating test data")
+create_test_data()
+print("Test Data Successful. Test Data length is:", len(test_data))
 
 
-def cnn_model_fn(features, labels, mode):
-  """Model function for CNN."""
-  # Input Layer
-  # Reshape X to 4-D tensor: [batch_size, width, height, channels]
-  # MNIST images are 28x28 pixels, and have one color channel
-  input_layer = tf.reshape(features["x"], [-1, 28, 28, 1])
+user_input = input("Would you like to continue?")
+if(user_input == "No" or user_input == "no" or user_input == "NO" ):
+    sys.exit()
+import random
 
-  # Convolutional Layer #1
-  # Computes 32 features using a 5x5 filter with ReLU activation.
-  # Padding is added to preserve width and height.
-  # Input Tensor Shape: [batch_size, 28, 28, 1]
-  # Output Tensor Shape: [batch_size, 28, 28, 32]
-  conv1 = tf.layers.conv2d(
-      inputs=input_layer,
-      filters=32,
-      kernel_size=[5, 5],
-      padding="same",
-      activation=tf.nn.relu)
-
-  # Pooling Layer #1
-  # First max pooling layer with a 2x2 filter and stride of 2
-  # Input Tensor Shape: [batch_size, 28, 28, 32]
-  # Output Tensor Shape: [batch_size, 14, 14, 32]
-  pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)
-
-  # Convolutional Layer #2
-  # Computes 64 features using a 5x5 filter.
-  # Padding is added to preserve width and height.
-  # Input Tensor Shape: [batch_size, 14, 14, 32]
-  # Output Tensor Shape: [batch_size, 14, 14, 64]
-  conv2 = tf.layers.conv2d(
-      inputs=pool1,
-      filters=64,
-      kernel_size=[5, 5],
-      padding="same",
-      activation=tf.nn.relu)
-
-  # Pooling Layer #2
-  # Second max pooling layer with a 2x2 filter and stride of 2
-  # Input Tensor Shape: [batch_size, 14, 14, 64]
-  # Output Tensor Shape: [batch_size, 7, 7, 64]
-  pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
-
-  # Flatten tensor into a batch of vectors
-  # Input Tensor Shape: [batch_size, 7, 7, 64]
-  # Output Tensor Shape: [batch_size, 7 * 7 * 64]
-  pool2_flat = tf.reshape(pool2, [-1, 7 * 7 * 64])
-
-  # Dense Layer
-  # Densely connected layer with 1024 neurons
-  # Input Tensor Shape: [batch_size, 7 * 7 * 64]
-  # Output Tensor Shape: [batch_size, 1024]
-  dense = tf.layers.dense(inputs=pool2_flat, units=1024, activation=tf.nn.relu)
-
-  # Add dropout operation; 0.6 probability that element will be kept
-  dropout = tf.layers.dropout(
-      inputs=dense, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
-
-  # Logits layer
-  # Input Tensor Shape: [batch_size, 1024]
-  # Output Tensor Shape: [batch_size, 10]
-  logits = tf.layers.dense(inputs=dropout, units=10)
-
-  predictions = {
-      # Generate predictions (for PREDICT and EVAL mode)
-      "classes": tf.argmax(input=logits, axis=1),
-      # Add `softmax_tensor` to the graph. It is used for PREDICT and by the
-      # `logging_hook`.
-      "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
-  }
-  if mode == tf.estimator.ModeKeys.PREDICT:
-    return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
-
-  # Calculate Loss (for both TRAIN and EVAL modes)
-  loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
-
-  # Configure the Training Op (for TRAIN mode)
-  if mode == tf.estimator.ModeKeys.TRAIN:
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
-    train_op = optimizer.minimize(
-        loss=loss,
-        global_step=tf.train.get_global_step())
-    return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
-
-  # Add evaluation metrics (for EVAL mode)
-  eval_metric_ops = {
-      "accuracy": tf.metrics.accuracy(
-          labels=labels, predictions=predictions["classes"])}
-  return tf.estimator.EstimatorSpec(
-      mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
+random.shuffle(training_data)  #shuffling data 
 
 
-def main(unused_argv):
-  # Load training and eval data
-  mnist = tf.contrib.learn.datasets.load_dataset("mnist")
-  train_data = mnist.train.images  # Returns np.array
-  train_labels = np.asarray(mnist.train.labels, dtype=np.int32)
-  eval_data = mnist.test.images  # Returns np.array
-  eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
+    
+x = []  # labels
+y = []  # labels
+x_test = []
+y_test = []
+for features, label in training_data:
+    x.append(features)
+    y.append(label)
+for features, label in test_data:
+    x_test.append(features)
+    y_test.append(label)
+                  
+                  
+x = np.array(x).reshape(-1, IMG_SIZE, IMG_SIZE, 1)
+x_test = np.array(x_test).reshape(-1, IMG_SIZE, IMG_SIZE, 1)
+# Saving so you can use these again without training 
+"""import pickle
 
-  # Create the Estimator
-  mnist_classifier = tf.estimator.Estimator(
-      model_fn=cnn_model_fn, model_dir="/tmp/mnist_convnet_model")
+pickle_out = open("x.pickle", "wb")
+pickle.dump(x, pickle_out)
+pickle_out.close()
 
-  # Set up logging for predictions
-  # Log the values in the "Softmax" tensor with label "probabilities"
-  tensors_to_log = {"probabilities": "softmax_tensor"}
-  logging_hook = tf.train.LoggingTensorHook(
-      tensors=tensors_to_log, every_n_iter=50)
+pickle_out = open("y.pickle", "wb")
+pickle.dump(y, pickle_out)
+pickle_out.close()
 
-  # Train the model
-  train_input_fn = tf.estimator.inputs.numpy_input_fn(
-      x={"x": train_data},
-      y=train_labels,
-      batch_size=100,
-      num_epochs=None,
-      shuffle=True)
-  mnist_classifier.train(
-      input_fn=train_input_fn,
-      steps=20000,
-      hooks=[logging_hook])
-
-  # Evaluate the model and print results
-  eval_input_fn = tf.compat.v1.estimator.inputs.numpy_input_fn(
-      x={"x": eval_data}, y=eval_labels, num_epochs=1, shuffle=False)
-  eval_results = mnist_classifier.evaluate(input_fn=eval_input_fn)
-  print(eval_results)
+pickle_in = open("x.pickle", "rb")
+x= pickle.load(pickle_in)"""
 
 
-if __name__ == "__main__":
-  tf.app.run()
+#Train Test Data
+x = tf.keras.utils.normalize(x, axis=1)  # scales data between 0 and 1
+x_test = tf.keras.utils.normalize(x_test, axis=1)
+
+print("Training Successful")
+
+#---------------------model--------------------
+
+model = tf.keras.models.Sequential()  # a basic feed-forward model
+
+model.add(tf.keras.layers.Flatten())  # takes our 28x28 and makes it 1x784
+model.add(tf.keras.layers.Dense(128, activation=tf.nn.relu))  # a simple fully-connected layer, 128 units, relu activation
+model.add(tf.keras.layers.Dense(128, activation=tf.nn.relu))  # a simple fully-connected layer, 128 units, relu activation
+model.add(tf.keras.layers.Dense(10, activation=tf.nn.softmax))
+
+model.compile(optimizer='adam',  # Good default optimizer to start with
+              loss='sparse_categorical_crossentropy',  # how will we calculate our "error." Neural network aims to minimize loss.
+              metrics=['accuracy'])  # what to track
+print("Training Successful YAAAAAAAAADA")
+
+model.fit(x, y, epochs=3)  # train the model
+print("Model Successful")
+
+val_loss, val_acc = model.evaluate(x_test, y_test)  # evaluate the out of sample data with model
+
+
+
+
+print("PROGRAM SUCCESSFUL")
