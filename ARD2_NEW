@@ -11,6 +11,7 @@
 
 // TRIAL CODE BELOW
 
+
 //Defining Motor A & B output pins
 
 //Defining other variables
@@ -29,7 +30,7 @@ int ToggleMode = 0;
 
 // defines variables
 long duration, durationA, durationB; // variable for the duration of sound wave travel
-int distance, distanceA, distanceB; // variable for the distance measurement
+int RSensor, LSensor, FSensor; // variable for the distance measurement
 
 void setup() {
   pinMode(trigPin, OUTPUT); // Sets the trigPin as an OUTPUT
@@ -47,6 +48,8 @@ void setup() {
 void loop() {
   // Clears the trigPin condition
  Serial.println("programme has started");
+
+ // RIGHT SENSOR
  
   digitalWrite(trigPin, LOW);
   delayMicroseconds (2);
@@ -60,15 +63,16 @@ void loop() {
   duration = pulseIn(echoPin, HIGH);
 
   // Calculating the distance
-  distance = duration * 0.034 / 2; // Speed of sound wave divided by 2 (go and back)
-  distanceA = durationA * 0.034 / 2;
-  distanceB= durationB * 0.034 / 2;
+  RSensor = duration * 0.034 / 2; // Speed of sound wave divided by 2 (go and back)
+  LSensor = durationA * 0.034 / 2;
+  FSensor = durationB * 0.034 / 2;
   // Displays the distance on the Serial Monitor
  
   Serial.print("Distance: ");
-  Serial.print(distance);
+  Serial.print(RSensor);
   Serial.println(" cm");
 
+  // LEFT SENSOR
   
   digitalWrite(trigPinA, LOW);
   delayMicroseconds (2);
@@ -77,11 +81,13 @@ void loop() {
   digitalWrite(trigPinA, LOW);
   delayMicroseconds(15);
   durationA = pulseIn(echoPinA, HIGH);
-  Serial.print("DistanceA is : ");
-  Serial.print(distanceA);
+  Serial.print("LSensor is : ");
+  Serial.print(LSensor);
   Serial.println(" cm");
 
   delayMicroseconds(15);
+
+  // FRONT SENSOR
     
   digitalWrite(trigPinB, LOW);
   delayMicroseconds (2);
@@ -91,8 +97,8 @@ void loop() {
   delayMicroseconds(15);
   durationB = pulseIn(echoPinB, HIGH);
 
-  Serial.print("DistanceB is : ");
-  Serial.print(distanceB);
+  Serial.print("FSensor is : ");
+  Serial.print(FSensor);
   Serial.println(" cm");
 
   //delayMicroseconds(10000);
@@ -106,8 +112,22 @@ void loop() {
   digitalWrite(motD,LOW);
   analogWrite(3,255);
   
+// OBSTRUCTION FRONT, TURN LEFT IF CLEAR, ELSE CARRY ON
+ 
+  if ((FSensor <= 20) && (LSensor >= 30))
+  {digitalWrite(motC, LOW);
+  digitalWrite(motA, HIGH);}
+  else
+  {digitalWrite(motC, HIGH);
+  digitalWrite(motA, HIGH);}
 
-  
+// OBSTRUCTION FRONT, TURN RIGHT IF CLEAR, ELSE CARRY ON
 
+  if ((FSensor <= 20) && (RSensor >= 30))
+  {digitalWrite(motC, HIGH);
+  digitalWrite(motA, LOW);}
+ else
+  {digitalWrite(motC, HIGH);
+  digitalWrite(motA, HIGH);}
   
 }
