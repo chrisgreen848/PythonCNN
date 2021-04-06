@@ -15,21 +15,18 @@ from os import path
 
 ### Load image directory - save to list so we don't have to keep searching
 ## arguement : empty image list, directory of images
-def getImageList(imgList, imgDir):
+def getImageList(imgDir):
+    imgList = []
+    imgTypes = ["*.jpg", "*.jpeg", "*.bmp", "*.png"]
     os.chdir(imgDir)
-    #### Get jpeg images ####
-    for file in glob.glob("*.jpg"):
-       fullImageLocation = imgDir + file
-       imgList.append(fullImageLocation)
-    #### Get bitmap images #### 
-    for file in glob.glob("*.bmp"):
-       fullImageLocation = imgDir + file
-       imgList.append(fullImageLocation)
-    #### Get png images ####
-    for file in glob.glob("*.png"):
-       fullImageLocation = imgDir + file
-       imgList.append(fullImageLocation)
     
+    for file in imgTypes:
+        filetypes = glob.glob(file)
+        print(filetypes)
+        imgList += filetypes
+    
+    
+
     return imgList
 
 
@@ -62,7 +59,7 @@ def getLabels(bboxList):
     
 def getImageName(name):
     splitName = name.split("/")
-    oldImgName = splitName[5]
+    oldImgName = splitName[-1]
     oldImgName = oldImgName.split(".")
     oldImgName = oldImgName[0]
     return oldImgName
@@ -81,11 +78,17 @@ def saveLabelsAsTextFile(bboxObjects, file, classList):
         print(newline)
         txtFile.write(newline)
     
+  
+def convertBboxes    
+
+class imageData:
+    m_image = ""
+    m_bbox = []
     
 
 
-imgDir = "Y:/2020-VesselDetection/Annotations/training/trainingset/"
-saveDir = "Y:/2020-VesselDetection/Annotations/training/augmentations/"
+imgDir = "D:\\Augmentations\\preaug\\"
+saveDir =  "D:\\Augmentations\\postaug\\"
 textFileName = saveDir 
 imgList = []
 bboxList = [] ##list of bbox files
@@ -93,8 +96,9 @@ bboxData = [] ##list of bbox labels
 classes = ['boat']
 
 ###Image list ready to be augmented
-imgList = getImageList(imgList, imgDir)
+imgList = getImageList( imgDir)
 bboxList = getBboxList(imgList)
+
 
 
 ##---- Check size of img and bbox list to see if they match -----###
@@ -114,39 +118,41 @@ class_labels = ['boat']
          #, a.Rotate(limit=(90,90),always_apply=True)], bbox_params=a.BboxParams(format='yolo'))
     
     
-transform = a.Compose([ a.Rotate(limit=(180,180),always_apply=True)], bbox_params=a.BboxParams(format='yolo'))   
+transform = a.Compose([ a.Rotate(limit=(45,45),always_apply=True)])   
 ##import image
 print("Started Transform for each image in directory")
 
-for i in range(len(imgList)):
-    image = cv2.imread(imgList[i])
+for j in range(len(imgList)):
+    image = cv2.imread(imgList[j])
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    oldImgName = getImageName(imgList[i])
+    oldImgName = getImageName(imgList[j])
    
     bboxes = []
     
-    for i in range(len(bboxData[j])):
-    bboxData[j][i]=bboxData[j][i].strip('\n')
-    currentLabel = bboxData[j][i].split(" ")
-    bboxes.append([])
-    bboxes[i].append(float(currentLabel[1]))
-    bboxes[i].append(float(currentLabel[2]))
-    bboxes[i].append(float(currentLabel[3]))
-    bboxes[i].append(float(currentLabel[4]))
-    bboxes[i].append('boat')
-    
-    
     """
+    for i in range(len(bboxData[j])):
+        bboxData[j][i]=bboxData[j][i].strip('\n')
+        currentLabel = bboxData[j][i].split(" ")
+        bboxes.append([])
+        bboxes[i].append(float(currentLabel[1]))
+        bboxes[i].append(float(currentLabel[2]))
+        bboxes[i].append(float(currentLabel[3]))
+        bboxes[i].append(float(currentLabel[4]))
+        bboxes[i].append('boat')
+    """
+  
+
     transformed = transform(image=image)
     transformed_image = transformed["image"]
     newImageName = saveDir + oldImgName + "_augmented.jpg"
     cv2.imwrite(newImageName,transformed_image )
-    print("Image ", i, "complete!")"""
+    print("Image ", j, "complete!")
+"""
     
 
 
 #-----INDIVIDUAL IMAGES ----- # 
-"""
+
 j = 1
 image = cv2.imread(imgList[j])
 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -163,19 +169,19 @@ for i in range(len(bboxData[j])):
     bboxes[i].append(float(currentLabel[4]))
     bboxes[i].append('boat')
     print(bboxes[i])  
- """  
+"""  
     
 
 ## save text file
 
-
+"""
 newImageName = saveDir + oldImgName + "_augmented"
 jpgName = newImageName + ".jpg"
 textFileName = newImageName + ".txt"
 saveLabelsAsTextFile(transformed_bbox, textFileName)
 cv2.imwrite(jpgName,transformed_image )
 print("Image ", i, "complete!")
-
+"""
 
 
 
